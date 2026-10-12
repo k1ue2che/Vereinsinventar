@@ -4,7 +4,7 @@
   <name>Vereinsinventar</name>
   <summary>Einfaches Inventar für Nextcloud-Gruppen</summary>
   <description>Getrennte Gruppeninventare, verschachtelte Kategorien und einfache Gegenstände.</description>
-  <version>0.2.0</version>
+  <version>0.3.0</version>
   <licence>agpl</licence>
   <author>Vereinsinventar contributors</author>
   <namespace>Vereinsinventar</namespace>

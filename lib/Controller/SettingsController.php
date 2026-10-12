@@ -15,7 +15,7 @@ final class SettingsController extends Controller {
         parent::__construct($appName, $request);
     }
     // Absichtlich kein NoAdminRequired und kein NoCSRFRequired.
-    public function save(array $allowedGroups = [], array $readonlyGroups = []): DataResponse|RedirectResponse {
+    public function save(array $allowedGroups = [], array $readonlyGroups = [], array $editorGroups = [], array $inventoryIds = []): DataResponse|RedirectResponse {
         if (!$this->access->isAdmin()) {
             return new DataResponse(['message' => 'Nur Administratoren dürfen Inventargruppen freigeben.'], 403);
         }
@@ -26,7 +26,23 @@ final class SettingsController extends Controller {
         }
         $allowedGroups = array_values(array_unique($allowedGroups));
         $readonlyGroups = array_values(array_intersect(array_unique($readonlyGroups), $allowedGroups));
-        // Reihenfolge hält bei einem Fehler die neuen Freigaben zunächst geschlossen.
+        $editors = new \stdClass();
+        foreach ($editorGroups as $index => $ids) {
+            $target = $inventoryIds[$index] ?? null;
+            if (!is_string($target) || $this->groups->get($target) === null || !is_array($ids)) {
+                return new DataResponse(['message' => 'Ungültige Zuordnung der Bearbeitergruppen.'], 400);
+            }
+            foreach ($ids as $id) {
+                if (!is_string($id) || $this->groups->get($id) === null) {
+                    return new DataResponse(['message' => 'Eine ausgewählte Bearbeitergruppe existiert nicht mehr. Bitte die Einstellungen neu laden.'], 400);
+                }
+            }
+            if (in_array($target, $allowedGroups, true)) {
+                $editors->{$target} = array_values(array_unique($ids));
+            }
+        }
+        // Alle Werte erst nach vollständiger Prüfung speichern.
+        $this->config->setAppValue('vereinsinventar', 'editor_groups', json_encode($editors, JSON_THROW_ON_ERROR));
         $this->config->setAppValue('vereinsinventar', 'readonly_groups', json_encode($readonlyGroups, JSON_THROW_ON_ERROR));
         $this->config->setAppValue('vereinsinventar', 'allowed_groups', json_encode($allowedGroups, JSON_THROW_ON_ERROR));
         return new RedirectResponse($this->urls->linkToRoute('settings.AdminSettings.index', ['section' => 'additional']) . '#vereinsinventar', 303);

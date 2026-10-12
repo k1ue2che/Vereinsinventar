@@ -1,0 +1,6 @@
+#vereinsinventar .vi-settings-table { overflow-x: auto; margin-top: 16px; }
+#vereinsinventar table { width: 100%; border-collapse: collapse; }
+#vereinsinventar th, #vereinsinventar td { padding: 10px 12px; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--color-border); }
+#vereinsinventar th { font-weight: bold; }
+#vereinsinventar select { min-width: 220px; width: 100%; height: auto; }
+#vereinsinventar small { display: block; font-weight: normal; }

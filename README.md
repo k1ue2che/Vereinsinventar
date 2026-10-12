@@ -2,19 +2,20 @@
 
 Eine kleine, eigenständige Nextcloud-App für das Inventar eines Vereins.
 App-ID, Installationsordner und vorgeschlagener GitHub-Repository-Name: **`vereinsinventar`**.
-Version: **0.2.0 (MVP)**. Lizenz: AGPL-3.0-or-later.
+Version: **0.3.0 (MVP)**. Lizenz: AGPL-3.0-or-later.
 
 ## Umfang
 
 - Die Administration gibt gezielt Nextcloud-Gruppen für Inventar frei; andere Gruppen bleiben ausgeschlossen.
-- Mitglieder sehen ihre eigenen freigegebenen Gruppen. Nextcloud-Administratoren verwalten alle freigegebenen Inventare.
+- Mitglieder sehen ihre eigenen freigegebenen Inventare sowie Inventare, für die sie einer Bearbeitergruppe angehören. Nextcloud-Administratoren sehen alle freigegebenen Inventare.
+- Pro Inventargruppe können separate Bearbeitergruppen zugewiesen werden, die auch bei „Nur lesen“ schreiben dürfen.
 - Kategorien können beliebig verschachtelt angelegt und umbenannt werden.
 - Gegenstände: Name (Pflicht), Anzahl (ganze Zahl, auch 0), Inventarnummer, Standort, Notiz.
 - Gegenstände anlegen, bearbeiten, in eine andere Kategorie derselben Gruppe verschieben und nach Bestätigung löschen.
 - Deutsche Oberfläche, serverseitig gerenderte Formulare, Tastaturbedienung und schmaler Bildschirm berücksichtigt.
 - Keine Composer-Pakete, npm-Pakete, externen Dienste oder Build-Schritte.
 
-Bewusst nicht enthalten: Ausleihe, Bilder, Anhänge, QR-Codes, Import/Export, Suche, individuelle Rollen oder gruppenübergreifendes Teilen. Kategorien werden im MVP nicht verschoben oder gelöscht. Damit bleiben Hierarchie und untergeordnete Einträge bei parallelen Änderungen stabil. Es gibt keine Papierkorb- oder Versionsfunktion; parallele Gegenstandsänderungen verwenden den zuletzt gespeicherten Stand.
+Bewusst nicht enthalten: Ausleihe, Bilder, Anhänge, QR-Codes, Import/Export, Suche, individuelle Benutzerfreigaben oder öffentliche Freigabelinks. Kategorien werden im MVP nicht verschoben oder gelöscht. Damit bleiben Hierarchie und untergeordnete Einträge bei parallelen Änderungen stabil. Es gibt keine Papierkorb- oder Versionsfunktion; parallele Gegenstandsänderungen verwenden den zuletzt gespeicherten Stand.
 
 ## Name
 
@@ -51,7 +52,7 @@ Beispiel für Linux, Nextcloud liegt in `/var/www/nextcloud`. Pfade und Webserve
    ```
 
 4. In Nextcloud Gruppen erstellen bzw. vorhandene verwenden und Mitglieder zuweisen.
-5. Unter **Einstellungen → Administration → Zusätzliche Einstellungen → Vereinsinventar** die gewünschten Inventargruppen anhaken und **„Inventargruppen speichern“** wählen. Optional je Gruppe „Nur lesen“ aktivieren.
+5. Unter **Einstellungen → Administration → Zusätzliche Einstellungen → Vereinsinventar** die gewünschten Inventargruppen anhaken und **„Inventargruppen speichern“** wählen. Optional je Gruppe „Nur lesen“ aktivieren und daneben Bearbeitergruppen auswählen. Mehrere Gruppen lassen sich mit Strg/⌘ auswählen.
 6. „Vereinsinventar“ in der Navigation öffnen. Administratoren erreichen die Auswahl auch über **„Inventargruppen verwalten“** in der App.
 
 Eine Installation aus einem Git-Checkout ist ebenfalls möglich: das Repository direkt als Ordner `custom_apps/vereinsinventar` ablegen. Es ist kein Build erforderlich. Das MVP ist nicht für den Nextcloud App Store signiert. Keine Versionsprüfung mit `--force` umgehen.
@@ -60,17 +61,22 @@ Eine Installation aus einem Git-Checkout ist ebenfalls möglich: das Repository 
 
 Code aktualisieren und das Nextcloud-App-Update ausführen (z. B. `sudo -u www-data php /var/www/nextcloud/occ upgrade`). Danach die gewünschten Gruppen in den Administrationseinstellungen einmal freigeben. **Die neue Freigabeliste startet leer**, damit Verwaltungsgruppen nicht versehentlich Inventar erhalten. Vorhandene Kategorien und Gegenstände bleiben unverändert gespeichert und werden nach Freigabe ihrer Gruppe wieder sichtbar. Entfernen einer Freigabe sperrt den Zugriff und löscht keine Daten.
 
+## Update von 0.2.0 auf 0.3.0
+
+Code aktualisieren und `occ upgrade` ausführen. Die vorhandenen Inventarfreigaben und Nur-Lesen-Einstellungen bleiben erhalten; neue Bearbeiterzuordnungen starten leer. Anschließend in der Spalte **Bearbeitergruppen** die schreibberechtigten Nextcloud-Gruppen je Inventar auswählen. Nach einem Code-Update bei veraltetem PHP-Code den zuständigen PHP-FPM-Dienst neu laden. Auf testcamp wurde `systemctl reload php8.3-fpm` als wirksam bestätigt; bei anderen Installationen den passenden Dienst verwenden.
+
 ## Gruppenberechtigungen
 
 | Person / Einstellung | Lesen | Schreiben |
 | --- | --- | --- |
 | Mitglied einer freigegebenen Gruppe | Ja | Ja |
-| Mitglied einer freigegebenen Nur-Lesen-Gruppe | Ja | Nein |
-| Kein Gruppenmitglied, kein Administrator | Nein | Nein |
-| Nextcloud-Administrator, freigegebene Gruppe | Ja | Ja, außer bei Nur-Lesen |
+| Mitglied einer freigegebenen Nur-Lesen-Gruppe ohne Bearbeiterrolle | Ja | Nein |
+| Mitglied einer zugeordneten Bearbeitergruppe | Ja | Ja, auch bei Nur-Lesen |
+| Weder Inventarmitglied noch Bearbeiter noch Nextcloud-Administrator | Nein | Nein |
+| Nextcloud-Administrator, freigegebene Gruppe | Ja | Ja; bei Nur-Lesen nur mit Bearbeiterzuordnung |
 | Nicht freigegebene Gruppe (auch Administratoren) | Nein | Nein |
 
-Gruppen und Mitgliedschaften werden über die Nextcloud-Benutzerverwaltung verwaltet. Welche Gruppen Inventar erhalten, wird separat in den oben genannten App-Einstellungen festgelegt. Ohne Auswahl ist kein Inventar freigegeben. Verwaltungsgruppen und Untergruppen bleiben unmarkiert. Die App behandelt jede Gruppen-ID separat; sie leitet keine Berechtigungen aus Namen oder einer externen Gruppenhierarchie ab. Gruppennamen dienen der Anzeige; gespeichert wird die stabile Gruppen-ID. Jeder Zugriff prüft die aktuelle Freigabe und bei normalen Benutzern die aktuelle Mitgliedschaft. Nextcloud-Administratoren benötigen für freigegebene Inventare keine eigene Mitgliedschaft. Auch direkt angefragte Objekt- und Kategorie-IDs müssen zur ausgewählten Gruppe gehören. Die Anwendung vergibt keine zusätzlichen Rechte an Gruppenadministratoren.
+Gruppen und Mitgliedschaften werden über die Nextcloud-Benutzerverwaltung verwaltet. Welche Gruppen Inventar erhalten, wird separat in den oben genannten App-Einstellungen festgelegt. Ohne Auswahl ist kein Inventar freigegeben. Verwaltungsgruppen und Untergruppen bleiben in „Für Inventar freigeben“ unmarkiert. Sie können trotzdem als Bearbeitergruppen für andere Inventare ausgewählt werden. Die App behandelt jede Gruppen-ID separat; sie leitet keine Berechtigungen aus Namen oder einer externen Gruppenhierarchie ab. Gruppennamen dienen der Anzeige; gespeichert wird die stabile Gruppen-ID. Jeder Zugriff prüft die aktuelle Freigabe sowie die Inventar- oder Bearbeitermitgliedschaft bzw. die Nextcloud-Administratorrolle. Bearbeiterrechte gelten ausschließlich für das zugeordnete Inventar und erlauben keine Änderung der Administrationseinstellungen. Nextcloud-Administratoren benötigen für freigegebene Inventare keine eigene Mitgliedschaft. Auch direkt angefragte Objekt- und Kategorie-IDs müssen zur ausgewählten Gruppe gehören. Die Anwendung vergibt keine zusätzlichen Rechte an Gruppenadministratoren.
 
 Die Checkbox „Nur lesen“ ist der einfachste Weg. Alternativ einzelne Gruppen global auf Nur-Lesen setzen (JSON-Liste der **Gruppen-IDs**, nicht Anzeigenamen):
 
@@ -84,7 +90,11 @@ Zurücksetzen:
 sudo -u www-data php /var/www/nextcloud/occ config:app:delete vereinsinventar readonly_groups
 ```
 
-Diese Einstellung gilt für alle Mitglieder der genannten Gruppe, auch Administratoren. Das MVP bietet keine Mischung aus Lesern und Bearbeitern innerhalb derselben Gruppe. Fehlerhaftes JSON sperrt Schreibzugriffe vorsichtshalber; Lesen bleibt erlaubt. Änderungen an einer Gruppen-ID erzeugen einen anderen Inventarbereich. Beim Löschen einer Gruppe bleiben deren Datensätze erhalten: dieselbe später neu angelegte Gruppen-ID würde sie wieder sichtbar machen. Gruppen-IDs daher nicht für andere Personenkreise wiederverwenden; eine bereinigende Gruppen-Löschfunktion ist nicht Bestandteil dieses MVP.
+„Nur lesen“ sperrt Schreibzugriffe für normale Inventarmitglieder und Nextcloud-Administratoren. **Mitglieder einer ausdrücklich zugeordneten Bearbeitergruppe dürfen weiterhin schreiben.** Ohne „Nur lesen“ dürfen Inventarmitglieder, zugeordnete Bearbeiter und Nextcloud-Administratoren schreiben. Ohne Inventarfreigabe hat niemand Zugriff.
+
+Beispiel: `20NY` für Inventar freigeben, „Nur lesen“ aktivieren und `Vorstand` oder `admin` als Bearbeitergruppe auswählen. Mitglieder von `20NY` lesen; Mitglieder der ausgewählten Bearbeitergruppe dürfen Gegenstände und Kategorien anlegen/bearbeiten und Gegenstände löschen. Sie benötigen keine zusätzliche Mitgliedschaft in `20NY`. Die Gruppe `Vorstand` bzw. `admin` muss nicht selbst für Inventar freigegeben sein. Ein Bearbeiter hat dieselben Inventarfunktionen wie andere schreibberechtigte Mitglieder, kann aber keine Gruppenfreigaben oder Bearbeiterzuordnungen ändern.
+
+ Fehlerhaftes JSON in Nur-Lesen- oder Bearbeiterkonfiguration sperrt Schreibzugriffe vorsichtshalber. Inventarmitglieder und Nextcloud-Administratoren können weiterhin lesen; aus ungültigen Bearbeiterzuordnungen entstehen keine Rechte. Änderungen an einer Gruppen-ID erzeugen einen anderen Inventarbereich. Beim Löschen einer Gruppe bleiben deren Datensätze erhalten: dieselbe später neu angelegte Gruppen-ID würde sie wieder sichtbar machen. Gruppen-IDs daher nicht für andere Personenkreise wiederverwenden; eine bereinigende Gruppen-Löschfunktion ist nicht Bestandteil dieses MVP.
 
 ## Sicherheit und Daten
 
@@ -106,6 +116,7 @@ lib/Controller/          Seiten und Formulare
 lib/Db/                  Gruppengebundene Datenbankabfragen
 lib/Migration/           Initiales Schema
 lib/Service/             Rechte und Eingabeprüfung
+lib/Settings/            Administrationseinstellungen
 templates/               Deutsche Oberfläche
 css/ und img/            Darstellung und Navigationssymbol
 tests/                   Isolierte Tests und Nextcloud-Integration
@@ -127,14 +138,14 @@ php tests/template.php
 find appinfo lib templates tests -name '*.php' -print0 | xargs -0 -n1 php -l
 ```
 
-Die isolierten Tests verwenden kleine OCP-Doubles; sie prüfen Rechte und Validierung, ersetzen aber keine Prüfung gegen echte Nextcloud-Schnittstellen. Die CI installiert die App zusätzlich in offiziellen Docker-Images für 34 und 35 und führt `tests/integration.php` mit echter Datenbank und Gruppenverwaltung aus. Integration ausschließlich in einer separaten Testinstanz ausführen: dabei werden kurzzeitig Testbenutzer/-gruppen sowie Freigabe- und Nur-Lesen-Einstellungen verändert.
+Die isolierten Tests verwenden kleine OCP-Doubles; sie prüfen Rechte und Validierung, ersetzen aber keine Prüfung gegen echte Nextcloud-Schnittstellen. Die CI installiert die App zusätzlich in offiziellen Docker-Images für 34 und 35 und führt `tests/integration.php` mit echter Datenbank und Gruppenverwaltung aus. Integration ausschließlich in einer separaten Testinstanz ausführen: dabei werden kurzzeitig Testbenutzer/-gruppen sowie Freigabe-, Nur-Lesen- und Bearbeitereinstellungen verändert.
 
 Nach erfolgreicher CI manuell in beiden Versionen prüfen:
 
 1. Zwei Inventargruppen, eine Verwaltungsgruppe und Benutzer mit getrennten bzw. überlappenden Mitgliedschaften anlegen. Nur die zwei Inventargruppen freigeben. Ein Administrator ohne Mitgliedschaft muss beide freigegebenen Inventare sehen; die Verwaltungsgruppe darf auch per direkter URL nicht erreichbar sein.
 2. Gruppenauswahl, Unterkategorien und Gegenstände anlegen; Gegenstand verschieben, bearbeiten und löschen.
 3. Mitgliedschaft entziehen und direkte URLs erneut aufrufen: Zugriff muss gesperrt sein.
-4. Nur-Lesen-Gruppe konfigurieren: Lesen möglich, POST-Schreibversuche verweigert.
+4. Nur-Lesen-Gruppe konfigurieren: normale Mitglieder dürfen lesen, Schreibversuche werden verweigert. Eine separate Bearbeitergruppe zuordnen: deren Mitglieder sehen und bearbeiten ausschließlich das zugeordnete Inventar, auch ohne Inventarmitgliedschaft. Nach Entzug der Bearbeitermitgliedschaft oder Zuordnung wird der Zugriff wieder gesperrt.
 5. POST ohne gültiges `requesttoken` muss durch Nextcloud abgewiesen werden.
 6. HTML-Zeichen in Namen/Notizen müssen als Text erscheinen; schmale Ansicht und Tastaturbedienung prüfen.
 

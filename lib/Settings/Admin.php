@@ -13,7 +13,7 @@ final class Admin implements ISettings {
         $groups = [];
         // Auch direkte Aufrufe dürfen normalen Benutzern keine Gruppenliste liefern.
         if (!$this->access->isAdmin()) {
-            return new TemplateResponse('vereinsinventar', 'admin', ['groups' => [], 'allowed' => [], 'readonly' => [], 'action' => ''], 'blank');
+            return new TemplateResponse('vereinsinventar', 'admin', ['groups' => [], 'allowed' => [], 'readonly' => [], 'editors' => [], 'action' => ''], 'blank');
         }
         foreach ($this->groupManager->search('') as $group) {
             $groups[] = ['id' => $group->getGID(), 'name' => $group->getDisplayName()];
@@ -21,7 +21,7 @@ final class Admin implements ISettings {
         usort($groups, static fn(array $a, array $b): int => strnatcasecmp($a['name'], $b['name']));
         return new TemplateResponse('vereinsinventar', 'admin', [
             'groups' => $groups, 'allowed' => $this->access->allowedIds(),
-            'readonly' => $this->access->readonlyIds(),
+            'readonly' => $this->access->readonlyIds(), 'editors' => $this->access->editorGroups(),
             'action' => $this->urls->linkToRoute('vereinsinventar.settings.save'),
         ], 'blank');
     }

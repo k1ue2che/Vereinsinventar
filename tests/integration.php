@@ -27,6 +27,7 @@ $other = 'vi-b-' . $suffix;
 $user = $users->createUser($uid, bin2hex(random_bytes(24)));
 $a = $groups->createGroup($gid);
 $b = $groups->createGroup($other);
+$previousEditors = $config->getAppValue('vereinsinventar', 'editor_groups', '{}');
 $previousAllowed = $config->getAppValue('vereinsinventar', 'allowed_groups', '[]');
 $previous = $config->getAppValue('vereinsinventar', 'readonly_groups', '[]');
 $previousUser = $session->getUser();
@@ -36,6 +37,7 @@ function reject(callable $call, int $status): void {
     throw new RuntimeException('Zugriff wurde unerwartet erlaubt.');
 }
 try {
+    $config->setAppValue('vereinsinventar', 'editor_groups', '{}');
     $config->setAppValue('vereinsinventar', 'allowed_groups', json_encode([$gid, $other]));
     $a->addUser($user); $session->setUser($user);
     $inventory->save($gid, 0, 0, 'folder', 'Lager', 1, '', '', '');
@@ -78,12 +80,25 @@ try {
     check(str_contains($adminForm, 'allowedGroups[]'));
     $adminGroup->removeUser($user);
     check($settings->save([$other])->getStatus() === 403);
+    $adminGroup->addUser($user);
+    check($settings->save([$gid], [$gid], [0 => [$other]], [0 => $gid])->getStatus() === 303);
+    $adminGroup->removeUser($user);
+    check(array_column($access->groups(), 'id') === [$gid]);
+    $inventory->save($gid, 0, $folder, 'item', 'Bearbeiter-Test', 1, '', '', '');
+    $editorItems = array_values(array_filter($inventory->listing($gid, $folder), fn($row) => $row['kind'] === 'item'));
+    check(count($editorItems) === 1);
+    $inventory->remove($gid, $editorItems[0]['id']);
+    reject(fn() => $access->check($other), 403);
+    check($settings->save([$gid])->getStatus() === 403);
+    $b->removeUser($user);
+    reject(fn() => $access->check($gid), 403);
     echo "OK: Nextcloud-Datenbank, Gruppenfreigaben, Adminrechte und Seitenrendering\n";
 } finally {
     $qb = Server::get(IDBConnection::class)->getQueryBuilder();
     $qb->delete('vi_nodes')->where($qb->expr()->in('group_id', $qb->createNamedParameter([$gid, $other], \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_STR_ARRAY)))->executeStatement();
     $config->setAppValue('vereinsinventar', 'readonly_groups', $previous);
     $config->setAppValue('vereinsinventar', 'allowed_groups', $previousAllowed);
+    $config->setAppValue('vereinsinventar', 'editor_groups', $previousEditors);
     $session->setUser($previousUser);
     $user->delete(); $a->delete(); $b->delete();
 }

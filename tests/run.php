@@ -17,9 +17,10 @@ namespace {
     require __DIR__ . '/../lib/Service/Inventory.php';
     final class Config implements \OCP\IConfig {
         public string $value = '[]';
+        public string $editors = '{}';
         public string $allowed = '["verein-a","verein-b"]';
-        public function getAppValue($app, $key, $default = '') { return $key === 'allowed_groups' ? $this->allowed : $this->value; }
-        public function setAppValue($app, $key, $value) { if ($key === 'allowed_groups') { $this->allowed = $value; } else { $this->value = $value; } }
+        public function getAppValue($app, $key, $default = '') { return match ($key) { 'allowed_groups' => $this->allowed, 'editor_groups' => $this->editors, default => $this->value };  }
+        public function setAppValue($app, $key, $value) { if ($key === 'allowed_groups') { $this->allowed = $value; } elseif ($key === 'editor_groups') { $this->editors = $value; } else { $this->value = $value; } }
     }
     final class User { public function getUID() { return 'mitglied'; } }
     final class Session implements \OCP\IUserSession {
@@ -50,7 +51,7 @@ namespace {
             return $this->rows[$id];
         }
         public function save(string $groupId, int $id, array $data): void {
-            $id = $id ?: count($this->rows) + 1;
+            $id = $id ?: ($this->rows === [] ? 1 : max(array_keys($this->rows)) + 1);
             $this->rows[$id] = array_merge($data, ['id' => $id, 'group_id' => $groupId]);
         }
         public function remove(string $groupId, int $id): void { $this->get($groupId, $id); unset($this->rows[$id]); }
@@ -137,5 +138,45 @@ namespace {
     $config->allowed = '["verein-a"]';
     $session->loggedIn = false;
     expect(!$access->isAdmin() && $access->groups() === [], 'Anonyme Sitzung hat keine Gruppen');
+    $session->loggedIn = true; $groups->admin = false; $groups->ids = ['verwaltung'];
+    $config->allowed = '["verein-a","verein-b"]';
+    $config->value = '["verein-a","verein-b"]';
+    $config->editors = '{"verein-a":["verwaltung"]}';
+    expect(array_column($access->groups(), 'id') === ['verein-a'], 'Bearbeiter sieht zugeordnetes Inventar ohne eigene Mitgliedschaft');
+    $access->check('verein-a', true);
+    expect($access->writable('verein-a'), 'Bearbeiter überschreibt Nur-Lesen für genau ein Inventar');
+    denied(fn() => $access->check('verein-b', true), 403, 'Bearbeiterrechte nicht auf anderes Inventar übertragen');
+    denied(fn() => $access->check('verwaltung'), 403, 'Bearbeitergruppe erhält keinen eigenen Inventarbereich');
+    $save('verein-a', 0, 1, 'item', 'Bearbeitergegenstand');
+    $created = max(array_keys($store->rows));
+    $save('verein-a', $created, 2, 'item', 'Verschoben');
+    expect($inventory->get('verein-a', $created)['parent_id'] === 2, 'Bearbeiter darf Gegenstand anlegen und verschieben');
+    $save('verein-a', 2, 1, 'folder', 'Technik neu');
+    expect($inventory->get('verein-a', 2)['name'] === 'Technik neu', 'Bearbeiter darf Kategorie umbenennen');
+    $inventory->remove('verein-a', $created);
+    denied(fn() => $inventory->get('verein-a', $created), 404, 'Bearbeiter darf Gegenstand löschen');
+    $groups->ids = ['verein-a'];
+    $access->check('verein-a');
+    expect(!$access->writable('verein-a'), 'Normales Mitglied bleibt Nur-Lesen');
+    denied(fn() => $save('verein-a', 0, 0, 'item', 'Gesperrt'), 403, 'Normales Mitglied darf trotz Bearbeiterzuordnung nicht schreiben');
+    $groups->admin = true;
+    denied(fn() => $access->check('verein-a', true), 403, 'Admin ohne Bearbeiterzuordnung bleibt Nur-Lesen');
+    $groups->ids[] = 'verwaltung';
+    $access->check('verein-a', true);
+    expect($access->writable('verein-a'), 'Admin als zugeordneter Bearbeiter darf schreiben');
+    $config->allowed = '[]';
+    denied(fn() => $access->check('verein-a', true), 403, 'Freigabe sperrt auch Bearbeiter');
+    $config->allowed = '["verein-a","verein-b"]'; $groups->admin = false; $groups->ids = ['verwaltung'];
+    $config->editors = '{}';
+    denied(fn() => $access->check('verein-a'), 403, 'Entzogene Bearbeiterzuordnung sperrt Zugriff');
+    $config->editors = '{"verein-a":["verwaltung"]}'; $groups->ids = [];
+    denied(fn() => $access->check('verein-a'), 403, 'Entzogene Bearbeitermitgliedschaft sperrt Zugriff');
+    $groups->ids = ['verein-a']; $config->value = '[]';
+    foreach (['kaputt', '[]', '{"verein-a":"verwaltung"}', '{"verein-a":[1]}', '{"verein-a":{}}'] as $invalid) {
+        $config->editors = $invalid;
+        expect(!$access->writable('verein-a'), 'Ungültige Bearbeiterkonfiguration sperrt Schreiben');
+    }
+    $config->editors = '{"verein-a":["gelöscht"]}'; $config->value = '["verein-a"]';
+    expect(!$access->writable('verein-a'), 'Gelöschte Bearbeitergruppe verleiht keine Rechte');
     echo "OK: $count Prüfungen\n";
 }

@@ -17,6 +17,9 @@ final class Access {
     public function readonlyIds(): array {
         return $this->list('readonly_groups') ?? [];
     }
+    public function editorGroups(): array {
+        return (array)($this->editorConfig() ?? new \stdClass());
+    }
     public function groups(): array {
         $user = $this->userSession->getUser();
         if ($user === null) {
@@ -26,7 +29,7 @@ final class Access {
         $groups = [];
         foreach ($this->allowedIds() as $id) {
             $group = $this->groupManager->get($id);
-            if ($group !== null && ($admin || $this->groupManager->isInGroup($user->getUID(), $id))) {
+            if ($group !== null && ($admin || $this->groupManager->isInGroup($user->getUID(), $id) || $this->isEditor($id))) {
                 $groups[] = ['id' => $id, 'name' => $group->getDisplayName()];
             }
         }
@@ -37,7 +40,7 @@ final class Access {
         $user = $this->userSession->getUser();
         if ($user === null || !in_array($groupId, $this->allowedIds(), true)
             || $this->groupManager->get($groupId) === null
-            || (!$this->isAdmin() && !$this->groupManager->isInGroup($user->getUID(), $groupId))) {
+            || (!$this->isAdmin() && !$this->groupManager->isInGroup($user->getUID(), $groupId) && !$this->isEditor($groupId))) {
             throw new \DomainException('Kein Zugriff auf dieses Gruppeninventar.', 403);
         }
         if ($write && !$this->writable($groupId)) {
@@ -46,8 +49,37 @@ final class Access {
     }
     public function writable(string $groupId): bool {
         $readonly = $this->list('readonly_groups');
-        return in_array($groupId, $this->allowedIds(), true)
-            && $readonly !== null && !in_array($groupId, $readonly, true);
+        $user = $this->userSession->getUser();
+        return $user !== null && in_array($groupId, $this->allowedIds(), true)
+            && $this->groupManager->get($groupId) !== null
+            && $readonly !== null && $this->editorConfig() !== null
+            && ($this->isAdmin() || $this->groupManager->isInGroup($user->getUID(), $groupId) || $this->isEditor($groupId))
+            && (!in_array($groupId, $readonly, true) || $this->isEditor($groupId));
+    }
+    private function isEditor(string $groupId): bool {
+        $user = $this->userSession->getUser();
+        $map = $this->editorConfig();
+        if ($user === null || $map === null) {
+            return false;
+        }
+        foreach ($map->{$groupId} ?? [] as $editorId) {
+            if ($this->groupManager->get($editorId) !== null && $this->groupManager->isInGroup($user->getUID(), $editorId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    private function editorConfig(): ?\stdClass {
+        $map = json_decode($this->config->getAppValue('vereinsinventar', 'editor_groups', '{}'));
+        if (!$map instanceof \stdClass) {
+            return null;
+        }
+        foreach ($map as $ids) {
+            if (!is_array($ids) || !array_is_list($ids) || count(array_filter($ids, 'is_string')) !== count($ids)) {
+                return null;
+            }
+        }
+        return $map;
     }
     private function list(string $key): ?array {
         $groups = json_decode($this->config->getAppValue('vereinsinventar', $key, '[]'));
