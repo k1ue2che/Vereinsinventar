@@ -9,6 +9,8 @@
   <author>Vereinsinventar contributors</author>
   <namespace>Vereinsinventar</namespace>
   <category>organization</category>
+  <website>https://github.com/k1ue2che/Vereinsinventar</website>
+  <bugs>https://github.com/k1ue2che/Vereinsinventar/issues</bugs>
   <dependencies>
     <php min-version="8.3"/>
     <nextcloud min-version="34" max-version="35"/>

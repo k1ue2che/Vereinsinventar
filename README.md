@@ -108,7 +108,7 @@ CHANGELOG.md
 LICENSE
 ```
 
-Das mitgelieferte lokale Git-Repository enthält drei nachvollziehbare Entwicklungsschritte: Datenmodell/Rechte, Oberfläche, Dokumentation/Tests. Es wurde kein GitHub-Repository angelegt und nichts hochgeladen. Für die Veröffentlichung ein leeres Repository `vereinsinventar` im eigenen GitHub-Konto anlegen und die lokale Historie dorthin pushen. Autor und Kontakt in `appinfo/info.xml` vor Veröffentlichung anpassen; anschließend tatsächliche Repository-, Fehlerbericht- und Homepage-URLs ergänzen. Im MVP stehen dort bewusst keine erfundenen Links.
+GitHub-Repository: [k1ue2che/Vereinsinventar](https://github.com/k1ue2che/Vereinsinventar). Die Git-Historie enthält getrennte Schritte für Datenmodell/Rechte, Oberfläche, Dokumentation/Tests und die GitHub-Anbindung. Der Entwicklungszweig heißt `codex/mvp`. Fehlerberichte: [Issues](https://github.com/k1ue2che/Vereinsinventar/issues). Autor und Kontakt in `appinfo/info.xml` bei Bedarf vor einer App-Store-Veröffentlichung anpassen.
 
 ## Prüfungen
 
