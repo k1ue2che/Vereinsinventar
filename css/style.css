@@ -1,0 +1,24 @@
+#vi-app { display: flex; width: 100%; height: 100%; overflow: auto; color: var(--color-main-text); background: var(--color-main-background); }
+#vi-app aside { flex: 0 0 250px; padding: 24px 16px; border-right: 1px solid var(--color-border); overflow-wrap: anywhere; }
+#vi-app main { padding: 28px; flex: 1; min-width: 0; overflow: auto; }
+#vi-app h1 { font-size: 26px; font-weight: bold; margin-bottom: 20px; }
+#vi-app h2 { font-size: 18px; font-weight: bold; margin: 12px 0; }
+#vi-app nav { display: grid; gap: 6px; margin-top: 20px; }
+#vi-app nav a { padding: 8px; border-radius: var(--border-radius); }
+#vi-app nav a[aria-current] { background: var(--color-primary-element-light); font-weight: bold; }
+#vi-app a { color: var(--color-primary-element); text-decoration: underline; }
+#vi-app label { display: block; font-weight: bold; margin-top: 8px; }
+#vi-app input:not([type=hidden]), #vi-app select, #vi-app textarea { width: 100%; max-width: 540px; box-sizing: border-box; }
+#vi-app .vi-form { display: grid; gap: 6px; max-width: 540px; }
+#vi-app section { margin-top: 28px; }
+#vi-app .vi-table { overflow-x: auto; }
+#vi-app table { width: 100%; border-collapse: collapse; }
+#vi-app th, #vi-app td { padding: 10px; text-align: left; border-bottom: 1px solid var(--color-border); vertical-align: top; overflow-wrap: anywhere; }
+#vi-app th { font-weight: bold; }
+#vi-app caption { text-align: left; padding: 12px 0; }
+#vi-app .vi-notes { white-space: pre-wrap; max-width: 320px; }
+#vi-app .vi-error { padding: 14px; border: 2px solid var(--color-error); margin-bottom: 16px; }
+#vi-app .vi-subfolders { display: flex; flex-wrap: wrap; gap: 18px; margin: 20px 0; }
+#vi-app details { margin: 24px 0; }
+#vi-app summary { cursor: pointer; font-weight: bold; padding: 8px 0; }
+@media (max-width: 760px) { #vi-app { flex-direction: column; } #vi-app aside { flex: none; border-right: 0; border-bottom: 1px solid var(--color-border); } #vi-app main { overflow: visible; padding: 18px; } }
