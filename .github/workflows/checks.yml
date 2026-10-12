@@ -1,0 +1,43 @@
+name: Prüfungen
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring
+          coverage: none
+      - run: find appinfo lib templates tests -name '*.php' -print0 | xargs -0 -n1 php -l
+      - run: php tests/run.php
+      - run: php tests/template.php
+  nextcloud:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        nextcloud: ['34', '35']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Nextcloud installieren und App aktivieren
+        env:
+          NC_VERSION: ${{ matrix.nextcloud }}
+        run: |
+          docker run -d --name vi-nextcloud -v "$PWD:/var/www/html/custom_apps/vereinsinventar:ro" "nextcloud:${NC_VERSION}-apache"
+          for i in $(seq 1 90); do
+            if docker exec vi-nextcloud test -f /var/www/html/occ; then break; fi
+            sleep 2
+          done
+          docker exec -u www-data vi-nextcloud php occ maintenance:install --database sqlite --admin-user admin --admin-pass test-only-ci-password
+          docker exec -u www-data vi-nextcloud php occ app:enable vereinsinventar
+      - name: Migration, Datenbank und Rechte prüfen
+        run: docker exec -u www-data vi-nextcloud php custom_apps/vereinsinventar/tests/integration.php
+      - name: Nextcloud-Protokoll bei Fehlern
+        if: failure()
+        run: |
+          docker logs vi-nextcloud
+          docker exec vi-nextcloud cat /var/www/html/data/nextcloud.log || true
