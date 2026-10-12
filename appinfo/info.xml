@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+  <id>vereinsinventar</id>
+  <name>Vereinsinventar</name>
+  <summary>Einfaches Inventar für Nextcloud-Gruppen</summary>
+  <description>Getrennte Gruppeninventare, verschachtelte Kategorien und einfache Gegenstände.</description>
+  <version>0.1.0</version>
+  <licence>agpl</licence>
+  <author>Vereinsinventar contributors</author>
+  <namespace>Vereinsinventar</namespace>
+  <category>organization</category>
+  <dependencies>
+    <php min-version="8.3"/>
+    <nextcloud min-version="34" max-version="35"/>
+  </dependencies>
+  <navigations>
+    <navigation>
+      <name>Vereinsinventar</name>
+      <route>vereinsinventar.page.index</route>
+      <icon>app.svg</icon>
+      <order>50</order>
+    </navigation>
+  </navigations>
+</info>
