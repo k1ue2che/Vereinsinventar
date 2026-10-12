@@ -4,7 +4,7 @@
   <name>Vereinsinventar</name>
   <summary>Einfaches Inventar für Nextcloud-Gruppen</summary>
   <description>Getrennte Gruppeninventare, verschachtelte Kategorien und einfache Gegenstände.</description>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
   <licence>agpl</licence>
   <author>Vereinsinventar contributors</author>
   <namespace>Vereinsinventar</namespace>
@@ -15,6 +15,7 @@
     <php min-version="8.3"/>
     <nextcloud min-version="34" max-version="35"/>
   </dependencies>
+  <settings><admin>OCA\Vereinsinventar\Settings\Admin</admin></settings>
   <navigations>
     <navigation>
       <name>Vereinsinventar</name>

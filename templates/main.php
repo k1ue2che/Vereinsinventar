@@ -31,6 +31,7 @@ $common = static function () use ($hidden, $_): void {
 <div id="vi-app">
     <aside aria-label="Inventarauswahl">
         <h2>Vereinsinventar</h2>
+        <?php if ($_['isAdmin']): ?><p><a href="<?php p($urls->linkToRoute('settings.AdminSettings.index', ['section' => 'additional']) . '#vereinsinventar'); ?>">Inventargruppen verwalten</a></p><?php endif; ?>
         <form method="get" action="<?php p($link()); ?>">
             <label for="vi-group">Gruppe</label>
             <select id="vi-group" name="groupId">
@@ -51,7 +52,7 @@ $common = static function () use ($hidden, $_): void {
         <h1><?php p($_['folder'] === 0 ? 'Inventar' : $path($_['folder'])); ?></h1>
         <?php if ($_['error'] !== ''): ?><p class="vi-error" role="alert"><?php p($_['error']); ?></p><?php endif; ?>
         <?php if ($_['groups'] === []): ?>
-            <p>Du gehörst noch keiner Nextcloud-Gruppe an. Bitte wende dich an die Administration.</p>
+            <p>Für dich ist noch keine Inventargruppe freigegeben. Bitte wende dich an die Administration.</p>
         <?php elseif ($_['groupId'] !== '' && $_['writable'] === false && $_['error'] === ''): ?>
             <p>Dieses Gruppeninventar kannst du nur lesen.</p>
         <?php endif; ?>

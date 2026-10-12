@@ -13,7 +13,7 @@ jobs:
           extensions: mbstring
           coverage: none
       - run: find appinfo lib templates tests -name '*.php' -print0 | xargs -0 -n1 php -l
-      - run: php tests/run.php
+      - run: php tests/settings.php
       - run: php tests/template.php
   nextcloud:
     runs-on: ubuntu-latest

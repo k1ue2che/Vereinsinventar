@@ -4,9 +4,11 @@ declare(strict_types=1);
 // Kleine Test-Doubles ausschließlich für die verwendeten öffentlichen OCP-Verträge.
 namespace OCP {
     interface IConfig { public function getAppValue($app, $key, $default = ''); }
-    interface IGroupManager { public function getUserGroups($user); public function isInGroup($uid, $gid); }
+    interface IGroupManager { public function getUserGroups($user); public function isInGroup($uid, $gid); public function isAdmin($uid); public function get($gid); }
     interface IUserSession { public function getUser(); }
     interface IDBConnection {}
+    interface IRequest {}
+    interface IURLGenerator {}
 }
 namespace {
     if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
@@ -15,7 +17,9 @@ namespace {
     require __DIR__ . '/../lib/Service/Inventory.php';
     final class Config implements \OCP\IConfig {
         public string $value = '[]';
-        public function getAppValue($app, $key, $default = '') { return $this->value; }
+        public string $allowed = '["verein-a","verein-b"]';
+        public function getAppValue($app, $key, $default = '') { return $key === 'allowed_groups' ? $this->allowed : $this->value; }
+        public function setAppValue($app, $key, $value) { if ($key === 'allowed_groups') { $this->allowed = $value; } else { $this->value = $value; } }
     }
     final class User { public function getUID() { return 'mitglied'; } }
     final class Session implements \OCP\IUserSession {
@@ -24,6 +28,16 @@ namespace {
     }
     final class Groups implements \OCP\IGroupManager {
         public array $ids = ['verein-a'];
+        public bool $admin = false;
+        public function isAdmin($uid) { return $this->admin; }
+        public function get($gid) {
+            if (!in_array($gid, ['verein-a', 'verein-b', 'verwaltung'], true)) { return null; }
+            return new class($gid) {
+                public function __construct(private string $id) {}
+                public function getGID() { return $this->id; }
+                public function getDisplayName() { return $this->id; }
+            };
+        }
         public function getUserGroups($user) { return []; }
         public function isInGroup($uid, $gid) { return in_array($gid, $this->ids, true); }
     }
@@ -97,5 +111,31 @@ namespace {
     expect($store->rows[3]['parent_id'] === 0 && $store->rows[3]['quantity'] === 0, 'Verschieben und Nullbestand');
     $inventory->remove('verein-a', 3);
     denied(fn() => $inventory->get('verein-a', 3), 404, 'Löschen');
+    expect(array_column($access->groups(), 'id') === ['verein-a'], 'Mitglied sieht nur eigene freigegebene Gruppe');
+    $groups->admin = true;
+    expect(array_column($access->groups(), 'id') === ['verein-a', 'verein-b'], 'Admin sieht alle freigegebenen Gruppen');
+    $access->check('verein-b', true);
+    expect(true, 'Admin darf freigegebene fremde Gruppe bearbeiten');
+    denied(fn() => $access->check('verwaltung'), 403, 'Verwaltungsgruppe auch für Admin gesperrt');
+    denied(fn() => $save('verwaltung', 0, 0, 'folder', 'Unzulässig'), 403, 'Kein Anlegen in nicht freigegebener Gruppe');
+    $config->value = '["verein-b"]';
+    denied(fn() => $access->check('verein-b', true), 403, 'Nur-Lesen gilt auch für Admin');
+    $config->value = '[]';
+    $config->allowed = '[]';
+    expect($access->groups() === [], 'Ohne Freigabe keine Gruppen');
+    denied(fn() => $access->check('verein-a'), 403, 'Freigabe entziehen sperrt Admin');
+    $groups->admin = false;
+    denied(fn() => $access->check('verein-a'), 403, 'Freigabe entziehen sperrt Mitglied');
+    foreach (['kaputt', '{}', '[1]', '[[]]'] as $invalid) {
+        $config->allowed = $invalid;
+        expect($access->groups() === [], 'Ungültige Freigabeliste bleibt geschlossen');
+        denied(fn() => $access->check('verein-a'), 403, 'Ungültige Freigabe sperrt Zugriff');
+    }
+    $config->allowed = '["gelöscht"]';
+    expect($access->groups() === [], 'Gelöschte Gruppen überspringen');
+    denied(fn() => $access->check('gelöscht'), 403, 'Gelöschte Gruppe sperren');
+    $config->allowed = '["verein-a"]';
+    $session->loggedIn = false;
+    expect(!$access->isAdmin() && $access->groups() === [], 'Anonyme Sitzung hat keine Gruppen');
     echo "OK: $count Prüfungen\n";
 }

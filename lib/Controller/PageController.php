@@ -69,7 +69,7 @@ final class PageController extends Controller {
         $response = new TemplateResponse('vereinsinventar', 'main', [
             'groups' => $groups, 'groupId' => $groupId, 'folder' => $folder,
             'nodes' => $nodes, 'selected' => $selected, 'writable' => $writable,
-            'error' => $error, 'urls' => $this->urls,
+            'error' => $error, 'urls' => $this->urls, 'isAdmin' => $this->access->isAdmin(),
         ]);
         $response->setStatus($status);
         return $response;

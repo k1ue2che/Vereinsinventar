@@ -2,12 +2,12 @@
 
 Eine kleine, eigenständige Nextcloud-App für das Inventar eines Vereins.
 App-ID, Installationsordner und vorgeschlagener GitHub-Repository-Name: **`vereinsinventar`**.
-Version: **0.1.0 (MVP)**. Lizenz: AGPL-3.0-or-later.
+Version: **0.2.0 (MVP)**. Lizenz: AGPL-3.0-or-later.
 
 ## Umfang
 
-- Jede bestehende Nextcloud-Gruppe hat einen eigenen Inventarbereich.
-- Mitglieder sehen ausschließlich die Bereiche ihrer eigenen Gruppen.
+- Die Administration gibt gezielt Nextcloud-Gruppen für Inventar frei; andere Gruppen bleiben ausgeschlossen.
+- Mitglieder sehen ihre eigenen freigegebenen Gruppen. Nextcloud-Administratoren verwalten alle freigegebenen Inventare.
 - Kategorien können beliebig verschachtelt angelegt und umbenannt werden.
 - Gegenstände: Name (Pflicht), Anzahl (ganze Zahl, auch 0), Inventarnummer, Standort, Notiz.
 - Gegenstände anlegen, bearbeiten, in eine andere Kategorie derselben Gruppe verschieben und nach Bestätigung löschen.
@@ -50,22 +50,29 @@ Beispiel für Linux, Nextcloud liegt in `/var/www/nextcloud`. Pfade und Webserve
    sudo -u www-data php /var/www/nextcloud/occ app:enable vereinsinventar
    ```
 
-4. In Nextcloud Gruppen erstellen bzw. vorhandene verwenden und Mitglieder zuweisen. Anschließend „Vereinsinventar“ in der Navigation öffnen.
+4. In Nextcloud Gruppen erstellen bzw. vorhandene verwenden und Mitglieder zuweisen.
+5. Unter **Einstellungen → Administration → Zusätzliche Einstellungen → Vereinsinventar** die gewünschten Inventargruppen anhaken und **„Inventargruppen speichern“** wählen. Optional je Gruppe „Nur lesen“ aktivieren.
+6. „Vereinsinventar“ in der Navigation öffnen. Administratoren erreichen die Auswahl auch über **„Inventargruppen verwalten“** in der App.
 
 Eine Installation aus einem Git-Checkout ist ebenfalls möglich: das Repository direkt als Ordner `custom_apps/vereinsinventar` ablegen. Es ist kein Build erforderlich. Das MVP ist nicht für den Nextcloud App Store signiert. Keine Versionsprüfung mit `--force` umgehen.
+
+## Update von 0.1.0 auf 0.2.0
+
+Code aktualisieren und das Nextcloud-App-Update ausführen (z. B. `sudo -u www-data php /var/www/nextcloud/occ upgrade`). Danach die gewünschten Gruppen in den Administrationseinstellungen einmal freigeben. **Die neue Freigabeliste startet leer**, damit Verwaltungsgruppen nicht versehentlich Inventar erhalten. Vorhandene Kategorien und Gegenstände bleiben unverändert gespeichert und werden nach Freigabe ihrer Gruppe wieder sichtbar. Entfernen einer Freigabe sperrt den Zugriff und löscht keine Daten.
 
 ## Gruppenberechtigungen
 
 | Person / Einstellung | Lesen | Schreiben |
 | --- | --- | --- |
-| Gruppenmitglied, Standard | Ja | Ja |
-| Mitglied einer Nur-Lesen-Gruppe | Ja | Nein |
-| Kein Gruppenmitglied | Nein | Nein |
-| Nextcloud-Administrator ohne Mitgliedschaft | Nein | Nein |
+| Mitglied einer freigegebenen Gruppe | Ja | Ja |
+| Mitglied einer freigegebenen Nur-Lesen-Gruppe | Ja | Nein |
+| Kein Gruppenmitglied, kein Administrator | Nein | Nein |
+| Nextcloud-Administrator, freigegebene Gruppe | Ja | Ja, außer bei Nur-Lesen |
+| Nicht freigegebene Gruppe (auch Administratoren) | Nein | Nein |
 
-Gruppen werden über die Nextcloud-Benutzerverwaltung verwaltet. Gruppennamen dienen der Anzeige; gespeichert wird die stabile Gruppen-ID. Jeder Zugriff prüft die aktuelle Mitgliedschaft. Auch direkt angefragte Objekt- und Kategorie-IDs müssen zur ausgewählten Gruppe gehören. Die Anwendung vergibt keine zusätzlichen Rechte an Gruppenadministratoren.
+Gruppen und Mitgliedschaften werden über die Nextcloud-Benutzerverwaltung verwaltet. Welche Gruppen Inventar erhalten, wird separat in den oben genannten App-Einstellungen festgelegt. Ohne Auswahl ist kein Inventar freigegeben. Verwaltungsgruppen und Untergruppen bleiben unmarkiert. Die App behandelt jede Gruppen-ID separat; sie leitet keine Berechtigungen aus Namen oder einer externen Gruppenhierarchie ab. Gruppennamen dienen der Anzeige; gespeichert wird die stabile Gruppen-ID. Jeder Zugriff prüft die aktuelle Freigabe und bei normalen Benutzern die aktuelle Mitgliedschaft. Nextcloud-Administratoren benötigen für freigegebene Inventare keine eigene Mitgliedschaft. Auch direkt angefragte Objekt- und Kategorie-IDs müssen zur ausgewählten Gruppe gehören. Die Anwendung vergibt keine zusätzlichen Rechte an Gruppenadministratoren.
 
-Einzelne Gruppen global auf Nur-Lesen setzen (JSON-Liste der **Gruppen-IDs**, nicht Anzeigenamen):
+Die Checkbox „Nur lesen“ ist der einfachste Weg. Alternativ einzelne Gruppen global auf Nur-Lesen setzen (JSON-Liste der **Gruppen-IDs**, nicht Anzeigenamen):
 
 ```sh
 sudo -u www-data php /var/www/nextcloud/occ config:app:set vereinsinventar readonly_groups --value='["vorstand", "archiv"]'
@@ -83,7 +90,7 @@ Diese Einstellung gilt für alle Mitglieder der genannten Gruppe, auch Administr
 
 - Nextcloud-Anmeldung erforderlich; keine öffentlichen Routen.
 - Schreibende Aktionen ausschließlich per POST mit Nextcloud-CSRF-Prüfung.
-- Serverseitige Gruppenprüfung und gruppengebundene Datenbankabfragen.
+- Serverseitige Freigabe-, Mitgliedschafts- und Administratorprüfung sowie gruppengebundene Datenbankabfragen.
 - Ausgabe wird mit Nextcloud `p()` HTML-escaped; Notizen sind reiner Text.
 - Parametrisierte Abfragen; Feldlängen und Anzahl serverseitig begrenzt.
 - Kategorien können keinen neuen Elternknoten bekommen; damit entstehen über die App keine Zyklen.
@@ -115,16 +122,16 @@ GitHub-Repository: [k1ue2che/Vereinsinventar](https://github.com/k1ue2che/Verein
 Ohne Nextcloud (PHP mit mbstring):
 
 ```sh
-php tests/run.php
+php tests/settings.php
 php tests/template.php
 find appinfo lib templates tests -name '*.php' -print0 | xargs -0 -n1 php -l
 ```
 
-Die isolierten Tests verwenden kleine OCP-Doubles; sie prüfen Rechte und Validierung, ersetzen aber keine Prüfung gegen echte Nextcloud-Schnittstellen. Die CI installiert die App zusätzlich in offiziellen Docker-Images für 34 und 35 und führt `tests/integration.php` mit echter Datenbank und Gruppenverwaltung aus. Integration ausschließlich in einer separaten Testinstanz ausführen: dabei werden kurzzeitig Testbenutzer/-gruppen und die Nur-Lesen-Einstellung verändert.
+Die isolierten Tests verwenden kleine OCP-Doubles; sie prüfen Rechte und Validierung, ersetzen aber keine Prüfung gegen echte Nextcloud-Schnittstellen. Die CI installiert die App zusätzlich in offiziellen Docker-Images für 34 und 35 und führt `tests/integration.php` mit echter Datenbank und Gruppenverwaltung aus. Integration ausschließlich in einer separaten Testinstanz ausführen: dabei werden kurzzeitig Testbenutzer/-gruppen sowie Freigabe- und Nur-Lesen-Einstellungen verändert.
 
 Nach erfolgreicher CI manuell in beiden Versionen prüfen:
 
-1. Zwei Gruppen und Benutzer mit getrennten bzw. überlappenden Mitgliedschaften anlegen.
+1. Zwei Inventargruppen, eine Verwaltungsgruppe und Benutzer mit getrennten bzw. überlappenden Mitgliedschaften anlegen. Nur die zwei Inventargruppen freigeben. Ein Administrator ohne Mitgliedschaft muss beide freigegebenen Inventare sehen; die Verwaltungsgruppe darf auch per direkter URL nicht erreichbar sein.
 2. Gruppenauswahl, Unterkategorien und Gegenstände anlegen; Gegenstand verschieben, bearbeiten und löschen.
 3. Mitgliedschaft entziehen und direkte URLs erneut aufrufen: Zugriff muss gesperrt sein.
 4. Nur-Lesen-Gruppe konfigurieren: Lesen möglich, POST-Schreibversuche verweigert.

@@ -11,7 +11,7 @@ namespace {
                 public function linkToRoute($route, $args = []) { return '/apps/vereinsinventar/' . str_replace('vereinsinventar.page.', '', $route) . '?' . http_build_query($args); }
             },
             'groups' => $groups, 'groupId' => 'verein', 'folder' => 0, 'writable' => $write,
-            'selected' => $selected, 'error' => '', 'requesttoken' => 'nextcloud-token',
+            'isAdmin' => false, 'selected' => $selected, 'error' => '', 'requesttoken' => 'nextcloud-token',
             'nodes' => [
                 ['id' => 1, 'parent_id' => 0, 'kind' => 'folder', 'name' => 'Lager'],
                 ['id' => 2, 'parent_id' => 1, 'kind' => 'folder', 'name' => 'Technik'],
@@ -45,6 +45,13 @@ namespace {
     check(dom(render(true, $item))->query('//details[contains(@class,"vi-delete")]//form')->length === 1, 'Löschen erst im Bestätigungsbereich');
     $folder = ['id' => 0, 'parent_id' => 0, 'kind' => 'folder', 'name' => 'Entwurf'];
     check(dom(render(true, $folder))->query('//input[@name="name" and @value="Entwurf"]')->length === 1, 'Fehlerhafter Kategorieentwurf bleibt genau einmal sichtbar');
-    check(str_contains(render(false, null, []), 'keiner Nextcloud-Gruppe'), 'Hinweis ohne Gruppen');
-    echo "OK: Template, Escaping, Formulare und Nur-Lesen\n";
+    check(str_contains(render(false, null, []), 'keine Inventargruppe'), 'Hinweis ohne Gruppen');
+    $_ = ['requesttoken' => 'admin-token', 'action' => '/settings/groups', 'allowed' => ['technik'], 'readonly' => ['technik'], 'groups' => [['id' => 'technik', 'name' => '<script>Technik</script>'], ['id' => 'verwaltung', 'name' => 'Verwaltung']]];
+    ob_start(); include __DIR__ . '/../templates/admin.php'; $adminHtml = ob_get_clean();
+    $adminDom = dom($adminHtml);
+    check(!str_contains($adminHtml, '<script>'), 'Gruppennamen in Einstellungen escaped');
+    check($adminDom->query('//input[@name="allowedGroups[]" and @checked]')->length === 1, 'Nur freigegebene Gruppe ausgewählt');
+    check($adminDom->query('//input[@name="readonlyGroups[]" and @checked]')->length === 1, 'Nur-Lesen korrekt ausgewählt');
+    check($adminDom->query('//form[@method="post"]//input[@name="requesttoken" and @value="admin-token"]')->length === 1, 'Adminformular hat CSRF-Token');
+    echo "OK: Templates, Escaping, Formulare und Nur-Lesen\n";
 }
