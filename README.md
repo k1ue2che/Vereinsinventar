@@ -1,7 +1,7 @@
 # Vereinsinventar
 
-Eine kleine, eigenständige Nextcloud-App für das Inventar eines Vereins.
-App-ID, Installationsordner und vorgeschlagener GitHub-Repository-Name: **`vereinsinventar`**.
+Eine kleine, eigenständige Nextcloud-App für Vereinsinventar: getrennte Inventare je Nextcloud-Gruppe, verschachtelte Kategorien und gezielt zugewiesene Bearbeitergruppen.
+App-ID und Installationsordner: **`vereinsinventar`**. GitHub-Repository: **`k1ue2che/Vereinsinventar`**.
 Version: **0.3.0 (MVP)**. Lizenz: AGPL-3.0-or-later.
 
 ## Umfang
@@ -67,6 +67,22 @@ Code aktualisieren und `occ upgrade` ausführen. Die vorhandenen Inventarfreigab
 
 ## Gruppenberechtigungen
 
+### Beispiel: Vereinsmitglieder lesen, Vorstand bearbeitet
+
+Unter **Einstellungen → Administration → Zusätzliche Einstellungen → Vereinsinventar**:
+
+| Gruppe | Für Inventar freigeben | Nur lesen | Bearbeitergruppen |
+| --- | --- | --- | --- |
+| 20NY | Ja | Ja | Vorstand, admin |
+| Vorstand | Nein | Nein | Keine |
+| admin | Nein | Nein | Keine |
+
+Danach **„Inventargruppen speichern“** wählen. Mitglieder von `20NY` können ihr Inventar lesen. Mitglieder von `Vorstand` oder `admin` können es bearbeiten, auch ohne Mitgliedschaft in `20NY`. Die Bearbeitergruppen bekommen dadurch keinen eigenen Inventarbereich. Die Gruppen müssen zuvor in Nextcloud angelegt sein; ihre Namen sind hier Beispiele.
+
+**Ohne „Nur lesen“ dürfen auch die Mitglieder der Inventargruppe bearbeiten.** Soll ausschließlich eine separate Verwaltungsgruppe schreiben dürfen, „Nur lesen“ aktivieren und mindestens eine Bearbeitergruppe zuweisen. Mehrere Bearbeitergruppen mit gedrückter Strg-Taste (macOS: ⌘) auswählen. Nur Nextcloud-Administratoren ändern diese Zuordnungen.
+
+### Rechte im Überblick
+
 | Person / Einstellung | Lesen | Schreiben |
 | --- | --- | --- |
 | Mitglied einer freigegebenen Gruppe | Ja | Ja |
@@ -94,7 +110,7 @@ sudo -u www-data php /var/www/nextcloud/occ config:app:delete vereinsinventar re
 
 Beispiel: `20NY` für Inventar freigeben, „Nur lesen“ aktivieren und `Vorstand` oder `admin` als Bearbeitergruppe auswählen. Mitglieder von `20NY` lesen; Mitglieder der ausgewählten Bearbeitergruppe dürfen Gegenstände und Kategorien anlegen/bearbeiten und Gegenstände löschen. Sie benötigen keine zusätzliche Mitgliedschaft in `20NY`. Die Gruppe `Vorstand` bzw. `admin` muss nicht selbst für Inventar freigegeben sein. Ein Bearbeiter hat dieselben Inventarfunktionen wie andere schreibberechtigte Mitglieder, kann aber keine Gruppenfreigaben oder Bearbeiterzuordnungen ändern.
 
- Fehlerhaftes JSON in Nur-Lesen- oder Bearbeiterkonfiguration sperrt Schreibzugriffe vorsichtshalber. Inventarmitglieder und Nextcloud-Administratoren können weiterhin lesen; aus ungültigen Bearbeiterzuordnungen entstehen keine Rechte. Änderungen an einer Gruppen-ID erzeugen einen anderen Inventarbereich. Beim Löschen einer Gruppe bleiben deren Datensätze erhalten: dieselbe später neu angelegte Gruppen-ID würde sie wieder sichtbar machen. Gruppen-IDs daher nicht für andere Personenkreise wiederverwenden; eine bereinigende Gruppen-Löschfunktion ist nicht Bestandteil dieses MVP.
+Fehlerhaftes JSON in Nur-Lesen- oder Bearbeiterkonfiguration sperrt Schreibzugriffe vorsichtshalber. Inventarmitglieder und Nextcloud-Administratoren können weiterhin lesen; aus ungültigen Bearbeiterzuordnungen entstehen keine Rechte. Änderungen an einer Gruppen-ID erzeugen einen anderen Inventarbereich. Beim Löschen einer Gruppe bleiben deren Datensätze erhalten: dieselbe später neu angelegte Gruppen-ID würde sie wieder sichtbar machen. Gruppen-IDs daher nicht für andere Personenkreise wiederverwenden; eine bereinigende Gruppen-Löschfunktion ist nicht Bestandteil dieses MVP.
 
 ## Sicherheit und Daten
 
